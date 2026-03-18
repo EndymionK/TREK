@@ -4,7 +4,10 @@
 
 A self-hosted travel planner for organizing trips, places, budgets, packing lists, and more.
 
-![License](https://img.shields.io/github/license/mauriceboe/NOMAD)
+[![License](https://img.shields.io/github/license/mauriceboe/NOMAD)](LICENSE)
+[![Docker Pulls](https://img.shields.io/docker/pulls/mauriceboe/nomad)](https://hub.docker.com/r/mauriceboe/nomad)
+[![GitHub Stars](https://img.shields.io/github/stars/mauriceboe/NOMAD)](https://github.com/mauriceboe/NOMAD)
+[![Last Commit](https://img.shields.io/github/last-commit/mauriceboe/NOMAD)](https://github.com/mauriceboe/NOMAD/commits)
 
 ## Features
 
@@ -36,46 +39,48 @@ A self-hosted travel planner for organizing trips, places, budgets, packing list
 - **Weather**: OpenWeatherMap API (optional)
 - **Icons**: lucide-react
 
-## Deployment with Docker
+## Quick Start
 
 ### Prerequisites
 
 - Docker & Docker Compose
 
-### 1. Clone the repository
+### 1. Create a `docker-compose.yml`
 
-```bash
-git clone https://github.com/mauriceboe/NOMAD.git
-cd NOMAD
+```yaml
+services:
+  app:
+    image: mauriceboe/nomad:latest
+    container_name: nomad
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - JWT_SECRET=change-me-to-a-long-random-string
+      - PORT=3000
+    volumes:
+      - ./data:/app/data
+      - ./uploads:/app/uploads
+    restart: unless-stopped
 ```
 
-### 2. Configure environment
-
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `JWT_SECRET` | **Yes** (production) | Secret key for JWT signing (min. 32 characters). Auto-generated in development. |
-| `ALLOWED_ORIGINS` | No | Comma-separated list of allowed origins (default: `http://localhost:3000`) |
-| `PORT` | No | Server port (default: `3000`) |
-
-Set these in `docker-compose.yml` under `environment`.
-
-### 3. Start the app
+### 2. Start the app
 
 ```bash
-docker compose up -d --build
+docker compose up -d
 ```
 
-The app is now running on port `3000`.
+Done. Open `http://your-server:3000` in your browser.
 
-### 4. First setup
+### 3. First setup
 
 The **first user to register** automatically becomes the admin. No default credentials.
 
 ### Updating
 
 ```bash
-git pull
-docker compose up -d --build
+docker compose pull
+docker compose up -d
 ```
 
 Your data is persisted in the `./data` and `./uploads` volumes.
@@ -92,11 +97,10 @@ nomad.yourdomain.com {
 }
 ```
 
-Update `ALLOWED_ORIGINS` in `docker-compose.yml` to match your domain:
+Optionally restrict CORS by adding to `environment`:
 
 ```yaml
-environment:
-  - ALLOWED_ORIGINS=https://nomad.yourdomain.com
+- ALLOWED_ORIGINS=https://nomad.yourdomain.com
 ```
 
 ## Optional API Keys
@@ -115,6 +119,14 @@ API keys are configured in the **Admin Panel** after login.
 1. Sign up at [OpenWeatherMap](https://openweathermap.org/api)
 2. Get a free API key
 3. In NOMAD: Admin Panel → API Keys → OpenWeatherMap
+
+## Building from Source
+
+```bash
+git clone https://github.com/mauriceboe/NOMAD.git
+cd NOMAD
+docker build -t nomad .
+```
 
 ## Data & Backups
 
