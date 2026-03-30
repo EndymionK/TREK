@@ -225,7 +225,12 @@ router.post('/register', authLimiter, (req: Request, res: Response) => {
       'INSERT INTO users (username, email, password_hash, role) VALUES (?, ?, ?, ?)'
     ).run(username, email, password_hash, role);
 
-    const user = { id: result.lastInsertRowid, username, email, role, avatar: null, mfa_enabled: false };
+    const userId = Number(result.lastInsertRowid);
+    if (!Number.isFinite(userId) || userId <= 0) {
+      throw new Error('Invalid user id after INSERT');
+    }
+
+    const user = { id: userId, username, email, role, avatar: null, mfa_enabled: false };
     const token = generateToken(user);
 
     // Atomically increment invite token usage (prevents race condition)

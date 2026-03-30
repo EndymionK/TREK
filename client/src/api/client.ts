@@ -3,6 +3,7 @@ import { getSocketId } from './websocket'
 
 const apiClient: AxiosInstance = axios.create({
   baseURL: '/api',
+  timeout: 20000,
   headers: {
     'Content-Type': 'application/json',
   },

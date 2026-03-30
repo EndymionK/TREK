@@ -14,6 +14,19 @@ interface PreparedLike {
   all: (...params: unknown[]) => Array<Record<string, unknown>>;
 }
 
+function coerceInsertId(value: unknown): number | null {
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  if (typeof value === 'bigint') {
+    const asNumber = Number(value);
+    return Number.isFinite(asNumber) ? asNumber : null;
+  }
+  if (typeof value === 'string' && /^\d+$/.test(value)) {
+    const asNumber = Number(value);
+    return Number.isFinite(asNumber) ? asNumber : null;
+  }
+  return null;
+}
+
 function normalizeWhitespace(sql: string): string {
   return sql.replace(/\s+/g, ' ').trim();
 }
@@ -214,10 +227,10 @@ export class PgCompatDatabase {
     return {
       run: (...params: unknown[]) => {
         const result = runQuery(asArrayParams(params));
-        const first = (result.rows[0] ?? {}) as { id?: number };
+        const first = (result.rows[0] ?? {}) as { id?: unknown };
         return {
           changes: result.rowCount ?? 0,
-          lastInsertRowid: typeof first.id === 'number' ? first.id : null,
+          lastInsertRowid: coerceInsertId(first.id),
         };
       },
       get: (...params: unknown[]) => {
