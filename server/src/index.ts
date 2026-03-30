@@ -177,8 +177,8 @@ app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
 
 import * as scheduler from './scheduler';
 
-const PORT = process.env.PORT || 3001;
-const server = app.listen(PORT, () => {
+const PORT = parseInt(process.env.PORT || '3001');
+const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`TREK API running on port ${PORT}`);
   console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
   if (process.env.DEMO_MODE === 'true') console.log('Demo mode: ENABLED');
