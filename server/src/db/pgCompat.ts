@@ -217,16 +217,36 @@ export class PgCompatDatabase {
         return { rows: [], rowCount: 0, command: '' };
       }
 
-      const upper = translated.sql.toUpperCase();
-      const isInsert = upper.startsWith('INSERT ');
-      const hasReturning = /\bRETURNING\b/i.test(translated.sql);
-      const finalSql = isInsert && !hasReturning ? `${translated.sql} RETURNING id` : translated.sql;
-      return this.query(finalSql, translated.values);
+      return this.query(translated.sql, translated.values);
     };
 
     return {
       run: (...params: unknown[]) => {
-        const result = runQuery(asArrayParams(params));
+        const translated = translateForPostgres(sql, asArrayParams(params));
+        if (!translated.sql) {
+          return { changes: 0, lastInsertRowid: null };
+        }
+
+        const upper = translated.sql.toUpperCase();
+        const isInsert = upper.startsWith('INSERT ');
+        const hasReturning = /\bRETURNING\b/i.test(translated.sql);
+
+        let result: QueryOutput;
+        if (isInsert && !hasReturning) {
+          try {
+            result = this.query(`${translated.sql} RETURNING id`, translated.values);
+          } catch (err) {
+            const msg = err instanceof Error ? err.message : String(err);
+            if (/column\s+"id"\s+does\s+not\s+exist/i.test(msg)) {
+              result = this.query(translated.sql, translated.values);
+            } else {
+              throw err;
+            }
+          }
+        } else {
+          result = this.query(translated.sql, translated.values);
+        }
+
         const first = (result.rows[0] ?? {}) as { id?: unknown };
         return {
           changes: result.rowCount ?? 0,

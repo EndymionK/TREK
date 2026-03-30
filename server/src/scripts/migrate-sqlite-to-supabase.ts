@@ -1,7 +1,7 @@
 import path from 'path';
 import fs from 'fs';
 import Database from 'better-sqlite3';
-import { Client } from 'pg';
+import { Client, ClientConfig } from 'pg';
 
 type SqliteTableRow = {
   name: string;
@@ -72,12 +72,13 @@ async function main(): Promise<void> {
   console.log('[MIGRATE] Connecting to Supabase Postgres...');
 
   const sqlite = new Database(sqlitePath, { readonly: true });
-  const pg = new Client({
+  const pgConfig: ClientConfig & { family: number } = {
     connectionString: dbUrl,
     ssl: { rejectUnauthorized: false },
     family: 4,
     connectionTimeoutMillis: 15000,
-  });
+  };
+  const pg = new Client(pgConfig);
   await pg.connect();
 
   try {
