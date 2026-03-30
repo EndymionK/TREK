@@ -123,7 +123,14 @@ function asArrayParams(params: unknown[]): SqlParams {
 }
 
 const QUERY_RUNNER = `
-const { Client } = require('pg');
+const { Client, types } = require('pg');
+(function configureTypeParsers() {
+  // Parse int8/bigserial values as numbers so route responses match previous SQLite behavior.
+  types.setTypeParser(20, (value) => {
+    const n = Number(value);
+    return Number.isFinite(n) ? n : value;
+  });
+})();
 (async () => {
   const client = new Client({
     connectionString: process.env.PG_URL,
