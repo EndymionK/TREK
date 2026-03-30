@@ -306,10 +306,12 @@ The script creates missing tables, migrates all rows, recreates compatible index
 ### Deploy on Render with Supabase
 
 1. In your Render Web Service, set these environment variables:
-  - `SUPABASE_DB_URL=postgresql://postgres:YOUR_PASSWORD@db.YOUR_PROJECT_REF.supabase.co:5432/postgres?sslmode=require`
+  - `SUPABASE_DB_URL=<Supabase Session Pooler URL>`
   - `JWT_SECRET=<your-long-random-secret>`
   - `NODE_ENV=production`
   - `PORT=10000` (or let Render inject `PORT`)
+
+   Use the **Session Pooler** connection string from Supabase (`port 6543`) instead of the direct DB host (`db.YOUR_PROJECT_REF.supabase.co:5432`) to avoid IPv6 routing issues on some platforms.
 
 2. Keep persistent storage only for uploads (if you use file uploads). SQLite storage is no longer required in Supabase mode.
 

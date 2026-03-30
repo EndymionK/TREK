@@ -112,7 +112,12 @@ function asArrayParams(params: unknown[]): SqlParams {
 const QUERY_RUNNER = `
 const { Client } = require('pg');
 (async () => {
-  const client = new Client({ connectionString: process.env.PG_URL, ssl: { rejectUnauthorized: false } });
+  const client = new Client({
+    connectionString: process.env.PG_URL,
+    ssl: { rejectUnauthorized: false },
+    family: 4,
+    connectionTimeoutMillis: 15000,
+  });
   await client.connect();
   const sql = process.env.PG_SQL || '';
   const values = JSON.parse(process.env.PG_VALUES || '[]');

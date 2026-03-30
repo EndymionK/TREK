@@ -72,7 +72,12 @@ async function main(): Promise<void> {
   console.log('[MIGRATE] Connecting to Supabase Postgres...');
 
   const sqlite = new Database(sqlitePath, { readonly: true });
-  const pg = new Client({ connectionString: dbUrl, ssl: { rejectUnauthorized: false } });
+  const pg = new Client({
+    connectionString: dbUrl,
+    ssl: { rejectUnauthorized: false },
+    family: 4,
+    connectionTimeoutMillis: 15000,
+  });
   await pg.connect();
 
   try {
