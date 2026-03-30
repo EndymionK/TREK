@@ -4,6 +4,15 @@ import { db } from '../db/database';
 import { JWT_SECRET } from '../config';
 import { AuthRequest, OptionalAuthRequest, User } from '../types';
 
+function normalizeJwtUserId(value: unknown): number | null {
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  if (typeof value === 'string' && /^\d+$/.test(value)) {
+    const n = Number(value);
+    return Number.isFinite(n) ? n : null;
+  }
+  return null;
+}
+
 const authenticate = (req: Request, res: Response, next: NextFunction): void => {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
@@ -14,10 +23,15 @@ const authenticate = (req: Request, res: Response, next: NextFunction): void => 
   }
 
   try {
-    const decoded = jwt.verify(token, JWT_SECRET) as { id: number };
+    const decoded = jwt.verify(token, JWT_SECRET) as { id: number | string };
+    const userId = normalizeJwtUserId(decoded.id);
+    if (userId === null) {
+      res.status(401).json({ error: 'Invalid token payload' });
+      return;
+    }
     const user = db.prepare(
       'SELECT id, username, email, role FROM users WHERE id = ?'
-    ).get(decoded.id) as User | undefined;
+    ).get(userId) as User | undefined;
     if (!user) {
       res.status(401).json({ error: 'User not found' });
       return;
@@ -39,10 +53,15 @@ const optionalAuth = (req: Request, res: Response, next: NextFunction): void => 
   }
 
   try {
-    const decoded = jwt.verify(token, JWT_SECRET) as { id: number };
+    const decoded = jwt.verify(token, JWT_SECRET) as { id: number | string };
+    const userId = normalizeJwtUserId(decoded.id);
+    if (userId === null) {
+      (req as OptionalAuthRequest).user = null;
+      return next();
+    }
     const user = db.prepare(
       'SELECT id, username, email, role FROM users WHERE id = ?'
-    ).get(decoded.id) as User | undefined;
+    ).get(userId) as User | undefined;
     (req as OptionalAuthRequest).user = user || null;
   } catch (err: unknown) {
     (req as OptionalAuthRequest).user = null;

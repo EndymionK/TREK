@@ -5,6 +5,15 @@ import { db, canAccessTrip } from './db/database';
 import { User } from './types';
 import http from 'http';
 
+function normalizeJwtUserId(value: unknown): number | null {
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  if (typeof value === 'string' && /^\d+$/.test(value)) {
+    const n = Number(value);
+    return Number.isFinite(n) ? n : null;
+  }
+  return null;
+}
+
 interface NomadWebSocket extends WebSocket {
   isAlive: boolean;
 }
@@ -53,10 +62,15 @@ function setupWebSocket(server: http.Server): void {
 
     let user: User | undefined;
     try {
-      const decoded = jwt.verify(token, JWT_SECRET) as { id: number };
+      const decoded = jwt.verify(token, JWT_SECRET) as { id: number | string };
+      const userId = normalizeJwtUserId(decoded.id);
+      if (userId === null) {
+        nws.close(4001, 'Invalid token payload');
+        return;
+      }
       user = db.prepare(
         'SELECT id, username, email, role FROM users WHERE id = ?'
-      ).get(decoded.id) as User | undefined;
+      ).get(userId) as User | undefined;
       if (!user) {
         nws.close(4001, 'User not found');
         return;
