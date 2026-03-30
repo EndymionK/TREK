@@ -28,6 +28,19 @@ function getPendingMfaSecret(userId: number): string | null {
   return row.secret;
 }
 
+function normalizeUserId(id: unknown): number | null {
+  if (typeof id === 'number' && Number.isFinite(id)) return id;
+  if (typeof id === 'bigint') {
+    const n = Number(id);
+    return Number.isFinite(n) ? n : null;
+  }
+  if (typeof id === 'string' && /^\d+$/.test(id)) {
+    const n = Number(id);
+    return Number.isFinite(n) ? n : null;
+  }
+  return null;
+}
+
 function stripUserForClient(user: User): Record<string, unknown> {
   const {
     password_hash: _p,
@@ -37,8 +50,10 @@ function stripUserForClient(user: User): Record<string, unknown> {
     mfa_secret: _mf,
     ...rest
   } = user;
+  const normalizedId = normalizeUserId((rest as { id?: unknown }).id);
   return {
     ...rest,
+    id: normalizedId ?? (rest as { id?: unknown }).id,
     mfa_enabled: !!(user.mfa_enabled === 1 || user.mfa_enabled === true),
   };
 }
@@ -112,9 +127,13 @@ function avatarUrl(user: { avatar?: string | null }): string | null {
   return user.avatar ? `/uploads/avatars/${user.avatar}` : null;
 }
 
-function generateToken(user: { id: number | bigint }) {
+function generateToken(user: { id: number | bigint | string }) {
+  const normalizedId = normalizeUserId(user.id);
+  if (normalizedId === null) {
+    throw new Error('Invalid user id for token generation');
+  }
   return jwt.sign(
-    { id: user.id },
+    { id: normalizedId },
     JWT_SECRET,
     { expiresIn: '24h' }
   );
