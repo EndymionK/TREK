@@ -40,6 +40,14 @@ function saveSettings(settings: BackupSettings): void {
 }
 
 async function runBackup(): Promise<void> {
+  try {
+    const { isPostgresMode } = require('./db/database');
+    if (isPostgresMode) {
+      console.log('[Auto-Backup] Skipped: Supabase/Postgres mode uses provider-side backups');
+      return;
+    }
+  } catch {}
+
   if (!fs.existsSync(backupsDir)) fs.mkdirSync(backupsDir, { recursive: true });
 
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);

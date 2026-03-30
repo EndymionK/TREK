@@ -228,6 +228,7 @@ trek.yourdomain.com {
 |----------|-------------|---------|
 | `PORT` | Server port | `3000` |
 | `NODE_ENV` | Environment | `production` |
+| `SUPABASE_DB_URL` | Postgres connection string for Supabase runtime mode | — |
 | `JWT_SECRET` | JWT signing secret | Auto-generated |
 | `FORCE_HTTPS` | Redirect HTTP to HTTPS | `false` |
 | `OIDC_ISSUER` | OIDC provider URL | — |
@@ -263,6 +264,68 @@ docker build -t trek .
 - **Uploads**: Stored in `./uploads/`
 - **Backups**: Create and restore via Admin Panel
 - **Auto-Backups**: Configurable schedule and retention in Admin Panel
+
+### Migrate SQLite to Supabase Postgres
+
+TREK includes a migration script that copies your local SQLite schema and data (`./data/travel.db`) to Supabase Postgres.
+
+1. Install server dependencies:
+
+```bash
+cd server
+npm install
+```
+
+2. Set the Supabase connection string:
+
+```bash
+# Example
+export SUPABASE_DB_URL="postgresql://postgres:YOUR_PASSWORD@db.YOUR_PROJECT_REF.supabase.co:5432/postgres?sslmode=require"
+```
+
+On Windows PowerShell:
+
+```powershell
+$env:SUPABASE_DB_URL="postgresql://postgres:YOUR_PASSWORD@db.YOUR_PROJECT_REF.supabase.co:5432/postgres?sslmode=require"
+```
+
+3. (Optional) Set a custom SQLite source file path:
+
+```bash
+export SQLITE_DB_PATH="./data/travel.db"
+```
+
+4. Run the migration:
+
+```bash
+npm run migrate:supabase
+```
+
+The script creates missing tables, migrates all rows, recreates compatible indexes, and updates Postgres sequences.
+
+### Deploy on Render with Supabase
+
+1. In your Render Web Service, set these environment variables:
+  - `SUPABASE_DB_URL=postgresql://postgres:YOUR_PASSWORD@db.YOUR_PROJECT_REF.supabase.co:5432/postgres?sslmode=require`
+  - `JWT_SECRET=<your-long-random-secret>`
+  - `NODE_ENV=production`
+  - `PORT=10000` (or let Render inject `PORT`)
+
+2. Keep persistent storage only for uploads (if you use file uploads). SQLite storage is no longer required in Supabase mode.
+
+3. Deploy. TREK auto-initializes required tables in Supabase on startup.
+
+4. Verify after deploy:
+
+```bash
+curl https://YOUR_RENDER_URL/api/health
+```
+
+Expected response:
+
+```json
+{"status":"ok"}
+```
 
 ## License
 

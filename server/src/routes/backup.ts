@@ -6,7 +6,7 @@ import path from 'path';
 import fs from 'fs';
 import { authenticate, adminOnly } from '../middleware/auth';
 import * as scheduler from '../scheduler';
-import { db, closeDb, reinitialize } from '../db/database';
+import { db, closeDb, reinitialize, isPostgresMode } from '../db/database';
 
 const router = express.Router();
 
@@ -72,6 +72,12 @@ router.get('/list', (_req: Request, res: Response) => {
 });
 
 router.post('/create', backupRateLimiter(3, BACKUP_RATE_WINDOW), async (_req: Request, res: Response) => {
+  if (isPostgresMode) {
+    return res.status(400).json({
+      error: 'File backup is not available in Supabase mode. Use Supabase backups (PITR) from the Supabase dashboard.',
+    });
+  }
+
   ensureBackupsDir();
 
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
@@ -183,6 +189,12 @@ async function restoreFromZip(zipPath: string, res: Response) {
 }
 
 router.post('/restore/:filename', async (req: Request, res: Response) => {
+  if (isPostgresMode) {
+    return res.status(400).json({
+      error: 'File restore is not available in Supabase mode. Restore from Supabase backups instead.',
+    });
+  }
+
   const { filename } = req.params;
   if (!/^backup-[\w\-]+\.zip$/.test(filename)) {
     return res.status(400).json({ error: 'Invalid filename' });
@@ -204,6 +216,12 @@ const uploadTmp = multer({
 });
 
 router.post('/upload-restore', uploadTmp.single('backup'), async (req: Request, res: Response) => {
+  if (isPostgresMode) {
+    return res.status(400).json({
+      error: 'Upload restore is not available in Supabase mode. Restore from Supabase backups instead.',
+    });
+  }
+
   if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
   const zipPath = req.file.path;
   await restoreFromZip(zipPath, res);

@@ -260,7 +260,7 @@ router.post('/invites', (req: Request, res: Response) => {
     ? new Date(Date.now() + parseInt(expires_in_days) * 86400000).toISOString()
     : null;
 
-  db.prepare(
+  const inserted = db.prepare(
     'INSERT INTO invite_tokens (token, max_uses, expires_at, created_by) VALUES (?, ?, ?, ?)'
   ).run(token, uses, expiresAt, authReq.user.id);
 
@@ -268,8 +268,8 @@ router.post('/invites', (req: Request, res: Response) => {
     SELECT i.*, u.username as created_by_name
     FROM invite_tokens i
     JOIN users u ON i.created_by = u.id
-    WHERE i.id = last_insert_rowid()
-  `).get();
+    WHERE i.id = ?
+  `).get(inserted.lastInsertRowid);
 
   res.status(201).json({ invite });
 });
